@@ -21,8 +21,15 @@ if [ "$RELEASE_VER" != ".el5" ]; then
     AWS_DOMAIN="amazonaws.com"
     AWS_REGION="us-east-2"
   fi
+else
+  if [ "$CHINA_MIRROR" != "0" ]; then
+    # Using USTC mirror, which is much useful for Chinese users.
+    MIRROR_URL="http://mirrors.ustc.edu.cn/centos-vault";
   else
-    MIRROR_URL="http://linuxsoft.cern.ch"
+    # See: https://vault.centos.org/5.11/
+    # MIRROR_URL="http://mirror.nsc.liu.se/centos-store"
+    MIRROR_URL="http://linuxsoft.cern.ch/centos-vault"
+  fi
 fi
 
 # For ARM platform, the mirror url needs a suffix `altarch`
@@ -63,8 +70,8 @@ function modify_el6() {
 
 function modify_el5() {
   sed -e "s|^mirrorlist=|#mirrorlist=|g" \
-      -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=${MIRROR_URL}/centos-vault/5.11|g" \
-      -e "s|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=${MIRROR_URL}/centos-vault/5.11|g" \
+      -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=${MIRROR_URL}/5.11|g" \
+      -e "s|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=${MIRROR_URL}/5.11|g" \
       -i.bak /etc/yum.repos.d/*.repo && \
   rm -rf /var/cache/yum/ && \
   yum makecache fast
