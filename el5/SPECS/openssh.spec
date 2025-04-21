@@ -106,6 +106,9 @@ Source2: sshd.pam.el5
 Source3: https://www.openssl.org/source/openssl-%{opensslver}.tar.gz
 %endif
 Source4: https://www.cpan.org/src/5.0/perl-%{perlver}.tar.gz
+
+# glibc-headers-2.5 have endian.h but didn't define htole64
+Patch0: have_endian.patch
 License: BSD
 Group: Applications/Internet
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
@@ -115,7 +118,7 @@ PreReq: initscripts >= 5.00
 %else
 Requires: initscripts >= 5.20
 %endif
-BuildRequires: perl
+#BuildRequires: perl
 #%if ! %{without_openssl}
 #BuildRequires: openssl-devel >= 1.1.1
 #%endif
@@ -210,15 +213,41 @@ into and executing commands on a remote machine. This package contains
 an X11 passphrase dialog for OpenSSH and the GNOME GUI desktop
 environment.
 
-%prep
+%global perl_version_ok %( \
+    if command -v perl >/dev/null 2>&1; then \
+        perl -e ' \
+            if ($] >= 5.010) { \
+                print "1"; \
+            } else { \
+                print "0"; \
+            }; \
+        ' \
+    else \
+        echo "0"; \
+    fi \
+)
 
+
+%prep
 %if ! %{no_x11_askpass}
 %setup -q -a 1
 %else
 %setup -q
 %endif
 
-# Add install perl to ensure OpenSSL can be used.
+# Applay a patch if glibc version is 2.5, not sure about other versions
+%global glibc_version %(ldd --version 2>&1 | head -n1 | grep -oP '[0-9.]+')
+echo "GLIBC version: %{glibc_version}"
+%if "%{glibc_version}" <= "2.5" && "%{opensshver}" == "9.9p2"
+%patch0 -p0
+%endif
+
+%if ! %{no_build_openssl}
+
+# the OpenSSL build require perl version >= 5.10.0
+# the EL5 perl in repo is 5.8, have to build our own.
+%if "%{expand:%{perl_version_ok}}" == "0"
+
 %define perl_dir %{_builddir}/%{name}-%{version}/perl
 mkdir -p perl
 tar xfz %{SOURCE4} --strip-components=1 -C perl
@@ -227,12 +256,14 @@ pushd perl
 mkdir -p perlbin
 ./configure.gnu --prefix=$PWD/perlbin
 make %{?_smp_mflags}
-make install
+make installperl
 export PATH=$PWD/perlbin/bin:$PATH
 popd
 
-# Add content below to use source code of OpenSSL
-%if ! %{no_build_openssl}
+# end of building perl
+%endif
+
+# Build OpenSSL
 %define openssl_dir %{_builddir}/%{name}-%{version}/openssl
 mkdir -p openssl
 tar xfz %{SOURCE3} --strip-components=1 -C openssl
@@ -240,6 +271,8 @@ pushd openssl
 ./config shared zlib -fPIC
 make %{?_smp_mflags}
 popd
+
+# end of ! %{no_build_openssl}
 %endif
 
 %build
@@ -463,6 +496,7 @@ fi
 %dir %attr(0111,root,root) %{_var}/empty/sshd
 %attr(0755,root,root) %{_sbindir}/sshd
 %attr(0755,root,root) %{_libexecdir}/openssh/sshd-session
+%attr(0755,root,root) %{_libexecdir}/openssh/sshd-auth
 %attr(0755,root,root) %{_libexecdir}/openssh/sftp-server
 %attr(0644,root,root) %{_mandir}/man8/sshd.8*
 %attr(0644,root,root) %{_mandir}/man5/moduli.5*
