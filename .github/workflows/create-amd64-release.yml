@@ -180,9 +180,6 @@ jobs:
 
   create_release:
     needs:
-      - build_al2023
-      - build_al2
-      - build_al1
       - build_el9
       - build_el8
       - build_el7
@@ -191,16 +188,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: al2023-amd64
-          path: ./output
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: al2-amd64
-          path: ./output
 
       - uses: actions/download-artifact@v4
         with:
