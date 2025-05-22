@@ -180,7 +180,7 @@ jobs:
           path: ./output
 
       - name: Get tag message
-       run: |
+        run: |
           echo "> Automated release created by GitHub Actions." > ${{ github.workspace }}/RELEASE.md
           echo "## Release Tag: ${{ github.ref_name }}" >> ${{ github.workspace }}/RELEASE.md
       - name: Create Release
