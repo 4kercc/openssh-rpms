@@ -2,7 +2,7 @@ name: Create EL6 & EL7 arm64 release
 
 on:
   push:
-    tags: [ "v*" ]
+    tags: [ "v10.1p1" ]
   workflow_dispatch:
 
 jobs:
